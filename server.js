@@ -129,7 +129,129 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+// ===== ADMIN API =====
 
+// lấy danh sách file
+app.get("/admin/files", (req, res) => {
+  res.json(fileMap);
+});
+
+// xoá file
+app.delete("/admin/delete/:id", (req, res) => {
+  const file = fileMap[req.params.id];
+  if (!file) return res.send("Không tồn tại");
+
+  file.files.forEach(f => {
+    const filePath = path.join(uploadDir, f);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  });
+
+  delete fileMap[req.params.id];
+
+  res.send("Đã xoá");
+});
+
+// UI admin
+app.get("/admin", (req, res) => {
+  res.send(`
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body {
+        background:#0f172a;
+        color:white;
+        font-family:Arial;
+        padding:20px;
+      }
+
+      table {
+        width:100%;
+        border-collapse:collapse;
+      }
+
+      td, th {
+        border:1px solid #374151;
+        padding:10px;
+        text-align:center;
+      }
+
+      button {
+        padding:5px 10px;
+        background:red;
+        color:white;
+        border:none;
+        cursor:pointer;
+      }
+
+      a {
+        color:#38bdf8;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <h2>📂 FILE MANAGER</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Files</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="list"></tbody>
+    </table>
+
+    <script>
+      async function load() {
+        const res = await fetch('/admin/files');
+        const data = await res.json();
+
+        let html = "";
+
+        for (let id in data) {
+          const f = data[id];
+
+          html += \`
+          <tr>
+            <td>\${id}</td>
+            <td>
+              \${f.files.map(file =>
+                '<a href="/file/' + id + '" target="_blank">' + file + '</a>'
+              ).join("<br>")}
+            </td>
+            <td>
+              <button onclick="del('\${id}')">Xoá</button>
+            </td>
+          </tr>\`;
+        }
+
+        document.getElementById("list").innerHTML = html;
+      }
+
+      async function del(id) {
+        if (!confirm("Xoá file?")) return;
+
+        await fetch('/admin/delete/' + id, {
+          method: 'DELETE'
+        });
+
+        load();
+      }
+
+      load();
+    </script>
+
+  </body>
+  </html>
+  `);
+});
 // ===== UPLOAD =====
 app.post("/upload", upload.array("file"), (req, res) => {
   const files = req.files;
