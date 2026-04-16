@@ -82,3 +82,14 @@ button {
   color: white;
   cursor: pointer;
 }
+#resetBtn {
+  margin-top: 20px;
+  padding: 16px 35px;
+  font-size: 20px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}

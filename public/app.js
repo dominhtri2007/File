@@ -86,8 +86,10 @@ function uploadFiles(files) {
   };
 
   xhr.onload = () => {
-    document.getElementById("result").innerHTML += "<br>✅ Upload xong!";
-  };
+  document.getElementById("result").innerHTML += "<br>✅ Upload xong!";
+
+  document.getElementById("resetBtn").style.display = "inline-block";
+};
 
   xhr.send(formData);
 }
@@ -97,7 +99,34 @@ function copyLink(link) {
   navigator.clipboard.writeText(link);
   alert("Đã copy!");
 }
+// F5
+document.getElementById("resetBtn").onclick = () => {
 
+  // reset progress
+  document.getElementById("bar").style.width = "0%";
+  document.getElementById("percent").innerText = "0%";
+  document.getElementById("percent2").innerText = "0";
+
+  document.getElementById("speed").innerText = "0 KB/s";
+  document.getElementById("speed2").innerText = "0";
+
+  document.getElementById("time").innerText = "0s";
+  document.getElementById("time2").innerText = "0";
+
+  document.getElementById("queue").innerText = "0 files";
+
+  // reset file info
+  document.getElementById("fileName").innerText = "";
+  document.getElementById("fileSize").innerText = "";
+
+  // reset UI
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("qr").getContext("2d").clearRect(0, 0, 200, 200);
+
+  document.getElementById("topBar").style.display = "none";
+  document.getElementById("fileBox").style.display = "none";
+  document.getElementById("resetBtn").style.display = "none";
+};
 // ===== CANCEL =====
 function cancelUpload() {
   if (xhr) {
