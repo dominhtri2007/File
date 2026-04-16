@@ -1,0 +1,84 @@
+body {
+  background: #0f172a;
+  font-family: Arial;
+  color: white;
+  margin: 0;
+}
+
+.container {
+  width: 800px;
+  margin: 40px auto;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.top {
+  display: none;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dropZone {
+  border: 2px dashed #6b7280;
+  padding: 30px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dropZone:hover {
+  background: #374151;
+}
+
+.progress {
+  background: #374151;
+  height: 8px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.bar {
+  height: 8px;
+  width: 0%;
+  background: #22c55e;
+  border-radius: 10px;
+}
+
+.info {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+button {
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: #6b7280;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+}
+
+#result {
+  margin-top: 20px;
+}
+
+.linkBox {
+  background: #1f2937;
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copyBtn {
+  background: #22c55e;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  color: white;
+  cursor: pointer;
+}

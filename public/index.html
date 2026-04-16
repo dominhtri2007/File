@@ -1,110 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>AirDrop Web</title>
+
+  <link rel="stylesheet" href="style.css">
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-
-  <style>
-    body {
-      background: #0f172a;
-      font-family: Arial;
-      color: white;
-      margin: 0;
-    }
-
-    .container {
-      width: 800px;
-      margin: 40px auto;
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
-    }
-
-    .top {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-
-    .top div {
-      text-align: center;
-    }
-
-    .dropZone {
-      border: 2px dashed #6b7280;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-
-    .dropZone:hover {
-      background: #374151;
-    }
-
-    .progress {
-      background: #374151;
-      height: 8px;
-      border-radius: 10px;
-      margin-top: 10px;
-    }
-
-    .bar {
-      height: 8px;
-      width: 0%;
-      background: #22c55e;
-      border-radius: 10px;
-    }
-
-    .info {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      font-size: 13px;
-      color: #9ca3af;
-    }
-
-    button {
-      margin-top: 10px;
-      padding: 6px 12px;
-      background: #6b7280;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      cursor: pointer;
-    }
-
-    #result a {
-      color: #38bdf8;
-      display: block;
-      margin-top: 10px;
-    }
-
-    canvas {
-      display: block;
-      margin: 0 auto 20px;
-    }
-  </style>
 </head>
 
 <body>
 
 <div class="container">
 
-  <h2 style="text-align:center">📲 AirDrop Web</h2>
+  <h2>Upload File Online</h2>
 
-  <!-- QR -->
   <canvas id="qr"></canvas>
 
-  <!-- HEADER -->
-  <div class="top">
+  <div class="top" id="topBar">
     <div>📁 Destination<br><b>Upload</b></div>
     <div>📄 Queue<br><b id="queue">0 files</b></div>
-    <div>⚡ Avg Speed<br><b id="speed">0 KB/s</b></div>
+    <div>⚡ Speed<br><b id="speed">0 KB/s</b></div>
     <div>⏱ Time<br><b id="time">0s</b></div>
     <div>📊 Progress<br><b id="percent">0%</b></div>
   </div>
@@ -114,129 +31,33 @@
     ⬆️ Drag & Drop or Click to Upload
   </div>
 
-  <input type="file" id="fileInput" hidden>
+  <input type="file" id="fileInput" multiple hidden>
 
-  <!-- FILE INFO -->
-  <div id="fileBox" style="display:none">
+  <!-- PROGRESS -->
+  <div id="fileBox">
 
     <b id="fileName"></b><br>
-    <span id="fileSize" style="color:#9ca3af"></span>
+    <span id="fileSize"></span>
 
     <div class="progress">
       <div id="bar" class="bar"></div>
     </div>
 
     <div class="info">
-      <span>⚡ <span id="speed2">0</span> KB/s</span>
-      <span>⏱ <span id="time2">0</span>s</span>
-      <span>📊 <span id="percent2">0</span>%</span>
+      ⚡ <span id="speed2">0</span> KB/s |
+      ⏱ <span id="time2">0</span>s |
+      📊 <span id="percent2">0</span>%
     </div>
 
     <button onclick="cancelUpload()">Cancel</button>
 
   </div>
 
-  <p id="result"></p>
+  <!-- LINK -->
+  <div id="result"></div>
 
 </div>
 
-<script>
-let xhr;
-const socket = io();
-
-// ===== NHẬN LINK + QR =====
-socket.on("file", (link) => {
-
-  document.getElementById("result").innerHTML =
-    `<a href="${link}" target="_blank">${link}</a>`;
-
-  // tạo QR
-  QRCode.toCanvas(document.getElementById("qr"), link, { width: 200 });
-});
-
-// ===== DRAG & DROP =====
-const dropZone = document.getElementById("dropZone");
-const fileInput = document.getElementById("fileInput");
-
-dropZone.onclick = () => fileInput.click();
-
-dropZone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropZone.style.background = "#374151";
-});
-
-dropZone.addEventListener("dragleave", () => {
-  dropZone.style.background = "";
-});
-
-dropZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZone.style.background = "";
-  uploadFile(e.dataTransfer.files[0]);
-});
-
-fileInput.onchange = () => {
-  uploadFile(fileInput.files[0]);
-};
-
-// ===== UPLOAD =====
-function uploadFile(file) {
-  if (!file) return;
-
-  document.getElementById("fileBox").style.display = "block";
-
-  document.getElementById("fileName").innerText = file.name;
-  document.getElementById("fileSize").innerText =
-    (file.size / 1024 / 1024).toFixed(2) + " MB";
-
-  document.getElementById("queue").innerText = "1 file";
-
-  xhr = new XMLHttpRequest();
-  const formData = new FormData();
-  formData.append("file", file);
-
-  xhr.open("POST", "/upload");
-
-  let startTime = Date.now();
-
-  xhr.upload.onprogress = (e) => {
-    if (e.lengthComputable) {
-
-      const percent = (e.loaded / e.total) * 100;
-
-      document.getElementById("bar").style.width = percent + "%";
-      document.getElementById("percent").innerText = Math.round(percent) + "%";
-      document.getElementById("percent2").innerText = Math.round(percent);
-
-      const duration = (Date.now() - startTime) / 1000;
-      const speed = (e.loaded / 1024 / duration).toFixed(1);
-
-      document.getElementById("speed").innerText = speed + " KB/s";
-      document.getElementById("speed2").innerText = speed;
-
-      const remaining =
-        ((e.total - e.loaded) / (e.loaded / duration)).toFixed(0);
-
-      document.getElementById("time").innerText = remaining + "s";
-      document.getElementById("time2").innerText = remaining;
-    }
-  };
-
-  xhr.onload = () => {
-    document.getElementById("result").innerHTML += "<br>✅ Upload xong!";
-  };
-
-  xhr.send(formData);
-}
-
-// ===== CANCEL =====
-function cancelUpload() {
-  if (xhr) {
-    xhr.abort();
-    document.getElementById("result").innerText = "❌ Upload đã huỷ";
-  }
-}
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>

@@ -4,116 +4,234 @@ const path = require("path");
 const fs = require("fs");
 const http = require("http");
 const { Server } = require("socket.io");
-
+const archiver = require("archiver");
+const { getFullInfo } = require("./pc");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// ====== FOLDER ======
+// ===== FOLDER =====
 const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+// info
+app.get("/api/info", async (req, res) => {
+  const data = await getFullInfo();
+  res.json(data);
+});
+app.get("/info", (req, res) => {
+  res.send(`
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Server Info</title>
 
-// ====== DATA ======
-const fileMap = {}; // id → { filename, type, time }
+    <style>
+      body {
+        background:#0f172a;
+        color:white;
+        font-family:Arial;
+        padding:30px;
+        text-align:center;
+      }
 
-// ====== MIDDLEWARE ======
+      .box {
+        background:#1e293b;
+        padding:20px;
+        border-radius:10px;
+        width:600px;
+        margin:auto;
+        text-align:left;
+      }
+
+      h2 {
+        text-align:center;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div class="box">
+      <h2>📊 SERVER INFO</h2>
+
+      <p id="cpu"></p>
+      <p id="ram"></p>
+      <p id="disk"></p>
+      <p id="os"></p>
+      <p id="uptime"></p>
+    </div>
+
+    <script>
+      async function load() {
+        const res = await fetch('/api/info');
+        const data = await res.json();
+
+        document.getElementById("cpu").innerText =
+          "CPU: " + data.cpu.name +
+          " | " + data.cpu.cores + " cores | " +
+          data.cpu.usage + "%";
+
+        document.getElementById("ram").innerText =
+          "RAM: " + data.ram.used + "/" + data.ram.total +
+          " GB | slots: " + data.ram.slots;
+
+        document.getElementById("disk").innerText =
+          "Disk: " + data.disk.map(d =>
+            d.name + " (" + d.used + "/" + d.total + "GB)"
+          ).join(" | ");
+
+        document.getElementById("os").innerText =
+          "OS: " + data.os.distro + " (" + data.os.arch + ")";
+
+        document.getElementById("uptime").innerText =
+          "Uptime: " + data.uptime;
+      }
+
+      setInterval(load, 2000);
+      load();
+    </script>
+
+  </body>
+  </html>
+  `);
+});
+// ===== DATA =====
+const fileMap = {};
+
+// ===== STATIC =====
 app.use(express.static("public"));
+app.use("/raw", express.static(uploadDir));
 app.use(express.json());
 
-// ====== UPLOAD CONFIG ======
+// ===== MULTER =====
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
 
-  // ⚡ GIỮ NGUYÊN TÊN FILE + chống trùng
   filename: (req, file, cb) => {
-    let name = file.originalname;
-    let filePath = path.join(uploadDir, name);
+    const name = Buffer.from(file.originalname, "latin1").toString("utf8");
 
+    let finalName = name;
+    let filePath = path.join(uploadDir, finalName);
     let count = 1;
 
     while (fs.existsSync(filePath)) {
       const ext = path.extname(name);
       const base = path.basename(name, ext);
-      name = base + "_" + count + ext;
-      filePath = path.join(uploadDir, name);
+      finalName = base + "_" + count + ext;
+      filePath = path.join(uploadDir, finalName);
       count++;
     }
 
-    cb(null, name);
+    cb(null, finalName);
   }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 1024 * 1024 * 1024 }
-});
+const upload = multer({ storage });
 
-// ====== API UPLOAD ======
-app.post("/upload", upload.single("file"), (req, res) => {
-  const file = req.file;
-
-  // tạo link random
+// ===== UPLOAD =====
+app.post("/upload", upload.array("file"), (req, res) => {
+  const files = req.files;
   const id = Math.random().toString(36).substring(2, 10);
 
   fileMap[id] = {
-    filename: file.filename,
-    type: file.mimetype,
-    time: new Date().toLocaleString()
+    files: files.map(f => f.filename),
+    types: files.map(f => f.mimetype),
+    original: files.map(f => f.originalname)
   };
 
   const link = `${req.protocol}://${req.get("host")}/file/${id}`;
-
   io.emit("file", link);
 
   res.json({ link });
 });
 
-// ====== PREVIEW FILE ======
-app.get("/file/:id", (req, res) => {
-  const file = fileMap[req.params.id];
-  if (!file) return res.send("File không tồn tại");
+// ===== DOWNLOAD ZIP =====
+app.get("/download-zip/:id", (req, res) => {
+  const data = fileMap[req.params.id];
+  if (!data) return res.send("Không tồn tại");
 
-  const fileUrl = `/raw/${file.filename}`;
-  const fullUrl = `${req.protocol}://${req.get("host")}${fileUrl}`;
-  const type = file.type;
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", "attachment; filename=files.zip");
+
+  const archive = archiver("zip", { zlib: { level: 9 } });
+  archive.pipe(res);
+
+  data.files.forEach((file, i) => {
+    archive.file(path.join(uploadDir, file), {
+      name: data.original[i]
+    });
+  });
+
+  archive.finalize();
+});
+
+// ===== DOWNLOAD SINGLE =====
+app.get("/download/:filename", (req, res) => {
+  const filePath = path.join(uploadDir, req.params.filename);
+  if (!fs.existsSync(filePath)) return res.send("Không tồn tại");
+
+  res.download(filePath);
+});
+
+// ===== PREVIEW =====
+app.get("/file/:id", (req, res) => {
+  const data = fileMap[req.params.id];
+  if (!data) return res.send("Không tồn tại");
+
+  // 👉 MULTIPLE FILE
+  if (data.files.length > 1) {
+    return res.send(`
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body style="background:#0f172a;color:white;text-align:center">
+
+      <h2>📦 ${data.files.length} files</h2>
+
+      <a href="/download-zip/${req.params.id}">
+        <button style="padding:15px 30px;font-size:18px">
+          ⬇️ Tải tất cả (ZIP)
+        </button>
+      </a>
+
+    </body>
+    </html>
+    `);
+  }
+
+  // 👉 SINGLE FILE
+  const file = data.files[0];
+  const type = data.types[0];
+  const url = `/raw/${file}`;
 
   let preview = "";
 
-  // ✅ ẢNH
   if (type.startsWith("image")) {
-    preview = `<img src="${fileUrl}" style="max-width:90%">`;
-  }
-
-  // ✅ VIDEO
-  else if (type.startsWith("video")) {
-    preview = `
-      <video controls style="max-width:90%">
-        <source src="${fileUrl}" type="${type}">
-      </video>
-    `;
-  }
-
-  // ✅ FILE KHÁC (PDF, DOC, XLS...)
-  else {
-    const viewer = `https://docs.google.com/gview?embedded=1&url=${fullUrl}`;
-    preview = `<iframe src="${viewer}" style="width:90%;height:70vh"></iframe>`;
+    preview = `<img src="${url}" style="max-width:90%">`;
+  } else if (type.startsWith("video")) {
+    preview = `<video controls src="${url}" style="max-width:90%"></video>`;
+  } else if (type.startsWith("audio")) {
+    preview = `<audio controls src="${url}" style="width:80%"></audio>`;
+  } else if (type === "application/pdf") {
+    preview = `<iframe src="${url}" style="width:90%;height:70vh"></iframe>`;
+  } else {
+    preview = `<p>❌ Không preview được</p>`;
   }
 
   res.send(`
   <html>
-  <body style="background:#0f172a;color:white;text-align:center;font-family:Arial">
-    <h2>📁 ${file.filename}</h2>
+  <head><meta charset="UTF-8"></head>
+  <body style="background:#0f172a;color:white;text-align:center">
+
+    <h2>📁 ${file}</h2>
 
     ${preview}
 
-    <p>Nếu không xem được, hãy tải xuống 👇</p>
+    <br>
 
-    <a href="/download/${file.filename}">
-      <button style="padding:15px 30px;font-size:18px;background:#22c55e;color:white;border:none;border-radius:10px">
+    <a href="/download/${file}">
+      <button style="padding:15px 30px;font-size:18px">
         ⬇️ Tải xuống
       </button>
     </a>
@@ -123,103 +241,12 @@ app.get("/file/:id", (req, res) => {
   `);
 });
 
-// ====== DOWNLOAD ======
-app.get("/download/:filename", (req, res) => {
-  const filePath = path.join(uploadDir, req.params.filename);
-  if (!fs.existsSync(filePath)) return res.send("File không tồn tại");
-
-  res.download(filePath);
-});
-
-// ====== RAW FILE (CHO PREVIEW) ======
-app.get("/raw/:filename", (req, res) => {
-  const filePath = path.join(uploadDir, req.params.filename);
-  if (!fs.existsSync(filePath)) return res.send("File không tồn tại");
-
-  res.sendFile(filePath);
-});
-
-// ====== ADMIN ======
-app.get("/admin/files", (req, res) => {
-  res.json(fileMap);
-});
-
-app.delete("/admin/delete/:id", (req, res) => {
-  const file = fileMap[req.params.id];
-  if (!file) return res.send("Không tồn tại");
-
-  const filePath = path.join(uploadDir, file.filename);
-
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
-
-  delete fileMap[req.params.id];
-
-  res.send("Đã xoá");
-});
-
-app.get("/admin", (req, res) => {
-  res.send(`
-  <html>
-  <body style="background:#0f172a;color:white;font-family:Arial;padding:20px">
-    <h2>📂 Quản lý file</h2>
-
-    <table border="1" cellpadding="10">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>File</th>
-          <th>Thời gian</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-
-      <tbody id="list"></tbody>
-    </table>
-
-    <script>
-      async function load() {
-        const res = await fetch('/admin/files');
-        const data = await res.json();
-
-        let html = "";
-        for (let id in data) {
-          const f = data[id];
-
-          html += \`
-          <tr>
-            <td>\${id}</td>
-            <td><a href="/file/\${id}" target="_blank">\${f.filename}</a></td>
-            <td>\${f.time}</td>
-            <td><button onclick="del('\${id}')">Xoá</button></td>
-          </tr>\`;
-        }
-
-        document.getElementById("list").innerHTML = html;
-      }
-
-      async function del(id) {
-        if (!confirm("Xoá file này?")) return;
-
-        await fetch('/admin/delete/' + id, { method: 'DELETE' });
-        load();
-      }
-
-      load();
-    </script>
-
-  </body>
-  </html>
-  `);
-});
-
-// ====== SOCKET ======
+// ===== SOCKET =====
 io.on("connection", () => {
   console.log("Client connected");
 });
 
-// ====== START ======
+// ===== START =====
 server.listen(PORT, () => {
-  console.log("Server chạy tại:", PORT);
+  console.log("Server chạy:", PORT);
 });
