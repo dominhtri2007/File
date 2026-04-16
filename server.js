@@ -304,23 +304,97 @@ app.get("/file/:id", (req, res) => {
 
   // 👉 MULTIPLE FILE
   if (data.files.length > 1) {
-    return res.send(`
-    <html>
-    <head><meta charset="UTF-8"></head>
-    <body style="background:#0f172a;color:white;text-align:center">
 
-      <h2>📦 ${data.files.length} files</h2>
+  let preview = "";
 
-      <a href="/download-zip/${req.params.id}">
-        <button style="padding:15px 30px;font-size:18px">
-          ⬇️ Tải tất cả (ZIP)
-        </button>
-      </a>
+  data.files.forEach((file, i) => {
+    const type = data.types[i];
+    const url = "/raw/" + file;
 
-    </body>
-    </html>
-    `);
-  }
+    // 🖼 IMAGE
+    if (type.startsWith("image")) {
+      preview += `<img src="${url}" style="width:180px;height:220px;object-fit:contain;background:#111827;margin:10px;border-radius:10px;padding:5px;">`;
+    }
+
+    // 🎬 VIDEO
+    else if (type.startsWith("video")) {
+      preview += `
+        <video controls style="width:200px;margin:10px">
+          <source src="${url}">
+        </video>
+      `;
+    }
+
+    // 🎧 AUDIO
+    else if (type.startsWith("audio")) {
+      preview += `
+        <audio controls style="width:200px;margin:10px">
+          <source src="${url}">
+        </audio>
+      `;
+    }
+
+    // 📄 FILE KHÁC
+    else {
+      preview += `
+        <div style="margin:10px">
+          📄 ${data.original[i]}
+          <br>
+          <a href="/download/${file}">⬇️ Tải</a>
+        </div>
+      `;
+    }
+  });
+
+  return res.send(`
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body {
+        background:#0f172a;
+        color:white;
+        text-align:center;
+        font-family:Arial;
+      }
+
+      .grid {
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+      }
+
+      button {
+        margin-top:20px;
+        padding:15px 30px;
+        font-size:18px;
+        background:#22c55e;
+        border:none;
+        border-radius:10px;
+        color:white;
+        cursor:pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <h2>📦 ${data.files.length} files</h2>
+
+    <div class="grid">
+      ${preview}
+    </div>
+
+    <br>
+
+    <a href="/download-zip/${req.params.id}">
+      <button>⬇️ Tải tất cả (ZIP)</button>
+    </a>
+
+  </body>
+  </html>
+  `);
+}
 
   // 👉 SINGLE FILE
   const file = data.files[0];
