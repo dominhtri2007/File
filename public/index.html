@@ -1,101 +1,211 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AirDrop Web</title>
+  <title>Upload Pro UI</title>
+
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
   <style>
     body {
+      background: #0f172a;
       font-family: Arial;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
+      margin: 0;
+    }
+
+    .container {
+      width: 800px;
+      margin: 50px auto;
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .top div {
       text-align: center;
     }
 
-    .box {
-      margin-top: 80px;
+    .dropZone {
+      border: 2px dashed #6b7280;
       padding: 30px;
-      background: #1e293b;
-      border-radius: 15px;
-      display: inline-block;
-    }
-
-    button {
-      padding: 10px 20px;
-      background: #22c55e;
-      border: none;
-      border-radius: 8px;
-      color: white;
+      border-radius: 10px;
+      text-align: center;
       cursor: pointer;
+      margin-bottom: 20px;
     }
 
-    progress {
-      width: 100%;
+    .fileBox {
+      margin-top: 20px;
+    }
+
+    .progress {
+      background: #374151;
+      height: 8px;
+      border-radius: 10px;
       margin-top: 10px;
     }
 
-    #result a {
-      color: #38bdf8;
+    .bar {
+      height: 8px;
+      width: 0%;
+      background: #22c55e;
+      border-radius: 10px;
+    }
+
+    .info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 5px 10px;
+      background: #6b7280;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>📲 AirDrop Web</h2>
+<div class="container">
 
-  <canvas id="qr"></canvas>
+  <!-- HEADER -->
+  <div class="top">
+    <div>📁 Destination:<br><b>Upload</b></div>
+    <div>📄 Queue:<br><b id="queue">0 files</b></div>
+    <div>⚡ Avg Speed:<br><b id="speed">0 KB/s</b></div>
+    <div>⏱ Remaining Time:<br><b id="time">0s</b></div>
+    <div>📊 Progress:<br><b id="percent">0%</b></div>
+  </div>
 
-  <br>
+  <!-- DROP -->
+  <div class="dropZone" id="dropZone">
+    ⬆️ Drag & Drop or Click to Upload
+  </div>
 
-  <input type="file" id="file"><br><br>
+  <input type="file" id="fileInput" hidden>
 
-  <button onclick="upload()">Gửi file</button>
+  <!-- FILE -->
+  <div class="fileBox" id="fileBox" style="display:none">
 
-  <progress id="progress" value="0" max="100"></progress>
+    <div>
+      <b id="fileName"></b><br>
+      <span id="fileSize" style="color:#9ca3af"></span>
+    </div>
 
-  <p id="status"></p>
+    <div class="progress">
+      <div id="bar" class="bar"></div>
+    </div>
+
+    <div class="info">
+      <span>⚡ <span id="speed2">0</span> KB/s</span>
+      <span>⏱ <span id="time2">0</span>s</span>
+      <span>📊 <span id="percent2">0</span>%</span>
+    </div>
+
+    <button onclick="cancelUpload()">Cancel</button>
+
+  </div>
+
   <p id="result"></p>
+
 </div>
 
 <script>
+let xhr;
 const socket = io();
 
-// nhận link
 socket.on("file", (link) => {
   document.getElementById("result").innerHTML =
     `<a href="${link}" target="_blank">${link}</a>`;
-
-  QRCode.toCanvas(document.getElementById("qr"), link);
 });
 
-// upload có progress
-function upload() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("Chọn file!");
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
 
-  const xhr = new XMLHttpRequest();
+dropZone.onclick = () => fileInput.click();
+
+dropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
+
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  uploadFile(e.dataTransfer.files[0]);
+});
+
+fileInput.onchange = () => {
+  uploadFile(fileInput.files[0]);
+};
+
+function uploadFile(file) {
+  if (!file) return;
+
+  document.getElementById("fileBox").style.display = "block";
+
+  document.getElementById("fileName").innerText = file.name;
+  document.getElementById("fileSize").innerText =
+    (file.size / 1024 / 1024).toFixed(2) + " MB";
+
+  document.getElementById("queue").innerText = "1 file";
+
+  xhr = new XMLHttpRequest();
   const formData = new FormData();
   formData.append("file", file);
 
   xhr.open("POST", "/upload");
 
+  let startTime = Date.now();
+
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
+
       const percent = (e.loaded / e.total) * 100;
-      document.getElementById("progress").value = percent;
-      document.getElementById("status").innerText =
-        "Đang upload: " + Math.round(percent) + "%";
+
+      document.getElementById("bar").style.width = percent + "%";
+      document.getElementById("percent").innerText = Math.round(percent) + "%";
+      document.getElementById("percent2").innerText = Math.round(percent);
+
+      const duration = (Date.now() - startTime) / 1000;
+      const speed = (e.loaded / 1024 / duration).toFixed(1);
+
+      document.getElementById("speed").innerText = speed + " KB/s";
+      document.getElementById("speed2").innerText = speed;
+
+      const remaining =
+        ((e.total - e.loaded) / (e.loaded / duration)).toFixed(0);
+
+      document.getElementById("time").innerText = remaining + "s";
+      document.getElementById("time2").innerText = remaining;
     }
   };
 
   xhr.onload = () => {
-    document.getElementById("status").innerText = "✅ Upload xong!";
+    document.getElementById("result").innerHTML += "<br>✅ Done!";
   };
 
   xhr.send(formData);
+}
+
+function cancelUpload() {
+  if (xhr) {
+    xhr.abort();
+    document.getElementById("result").innerText = "❌ Cancelled";
+  }
 }
 </script>
 
