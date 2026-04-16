@@ -93,3 +93,25 @@ button {
   cursor: pointer;
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
+#infoBox {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(30,41,59,0.9);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+  #infoBox {
+    top: 10px;
+    bottom: auto;
+    right: 10px;
+    font-size: 12px;
+    padding: 8px;
+  }
+}

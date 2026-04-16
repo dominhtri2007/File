@@ -35,6 +35,9 @@ fileInput.onchange = () => {
 
 // ===== UPLOAD =====
 function uploadFiles(files) {
+
+  lastBytes = 0;
+  lastTime = Date.now();
   if (!files.length) return;
 
   document.getElementById("topBar").style.display = "flex";
@@ -134,3 +137,42 @@ function cancelUpload() {
     document.getElementById("result").innerText = "❌ Đã huỷ";
   }
 }
+let lastBytes = 0;
+let lastTime = Date.now();
+
+async function loadInfo() {
+  const res = await fetch("/api/info");
+  const data = await res.json();
+
+  document.getElementById("cpu").innerText = data.cpu.usage;
+
+  document.getElementById("ram").innerText =
+    data.ram.used + "/" + data.ram.total + "GB";
+
+  document.getElementById("disk").innerText =
+    data.disk[0].used + "/" + data.disk[0].total + "GB";
+}
+
+// ===== NETWORK SPEED =====
+function updateNetworkSpeed() {
+  if (!xhr) return;
+
+  const now = Date.now();
+  const duration = (now - lastTime) / 1000;
+
+  if (xhr.upload && xhr.upload.loaded !== undefined) {
+    const speed = (xhr.upload.loaded - lastBytes) / 1024 / duration;
+
+    document.getElementById("net").innerText =
+      speed.toFixed(1) + " KB/s";
+
+    lastBytes = xhr.upload.loaded;
+    lastTime = now;
+  }
+}
+
+// update
+setInterval(loadInfo, 2000);
+setInterval(updateNetworkSpeed, 1000);
+
+loadInfo();
