@@ -79,60 +79,43 @@ app.get("/file/:id", (req, res) => {
 
   const fileUrl = `/raw/${file.filename}`;
   const fullUrl = `${req.protocol}://${req.get("host")}${fileUrl}`;
+  const type = file.type;
 
-  // dùng Google viewer nếu cần
-  const viewer = `https://docs.google.com/gview?embedded=1&url=${fullUrl}`;
+  let preview = "";
+
+  // ✅ ẢNH
+  if (type.startsWith("image")) {
+    preview = `<img src="${fileUrl}" style="max-width:90%">`;
+  }
+
+  // ✅ VIDEO
+  else if (type.startsWith("video")) {
+    preview = `
+      <video controls style="max-width:90%">
+        <source src="${fileUrl}" type="${type}">
+      </video>
+    `;
+  }
+
+  // ✅ FILE KHÁC (PDF, DOC, XLS...)
+  else {
+    const viewer = `https://docs.google.com/gview?embedded=1&url=${fullUrl}`;
+    preview = `<iframe src="${viewer}" style="width:90%;height:70vh"></iframe>`;
+  }
 
   res.send(`
   <html>
-  <head>
-    <title>Preview</title>
-    <style>
-      body {
-        background:#0f172a;
-        color:white;
-        text-align:center;
-        font-family:Arial;
-        padding:20px;
-      }
-
-      iframe {
-        width:90%;
-        height:70vh;
-        margin-top:20px;
-        border-radius:10px;
-        border:none;
-      }
-
-      button {
-        margin-top:25px;
-        padding:15px 30px;
-        font-size:18px;
-        background:#22c55e;
-        border:none;
-        border-radius:10px;
-        color:white;
-        cursor:pointer;
-      }
-
-      button:hover {
-        background:#16a34a;
-      }
-    </style>
-  </head>
-
-  <body>
-
+  <body style="background:#0f172a;color:white;text-align:center;font-family:Arial">
     <h2>📁 ${file.filename}</h2>
 
-    <!-- preview -->
-    <iframe src="${viewer}"></iframe>
+    ${preview}
 
     <p>Nếu không xem được, hãy tải xuống 👇</p>
 
-    <!-- download -->
     <a href="/download/${file.filename}">
-      <button>⬇️ Tải xuống</button>
+      <button style="padding:15px 30px;font-size:18px;background:#22c55e;color:white;border:none;border-radius:10px">
+        ⬇️ Tải xuống
+      </button>
     </a>
 
   </body>
