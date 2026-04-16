@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AirDrop Web</title>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      text-align: center;
+      margin: 0;
+    }
+
+    .container {
+      margin-top: 80px;
+    }
+
+    .box {
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 15px;
+      display: inline-block;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      margin-top: 15px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: none;
+      background: #22c55e;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #16a34a;
+    }
+
+    #result a {
+      color: #38bdf8;
+    }
+
+    canvas {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="box">
+    <h2>📲 AirDrop Web</h2>
+
+    <canvas id="qr"></canvas>
+
+    <br>
+
+    <input type="file" id="file">
+    <br>
+    <button onclick="upload()">Gửi file</button>
+
+    <p id="result"></p>
+  </div>
+</div>
+
+<script>
+const socket = io();
+
+// nhận link file mới
+socket.on("file", (link) => {
+
+  // hiển thị link
+  document.getElementById("result").innerHTML =
+    `<p>📁 <a href="${link}" target="_blank">${link}</a></p>`;
+
+  // tạo QR theo link file
+  QRCode.toCanvas(document.getElementById("qr"), link);
+});
+
+// upload file
+async function upload() {
+  const file = document.getElementById("file").files[0];
+  if (!file) return alert("Chọn file!");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  document.getElementById("result").innerHTML = "⏳ Đang gửi...";
+
+  await fetch("/upload", {
+    method: "POST",
+    body: formData
+  });
+}
+</script>
+
+</body>
+</html>
