@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>AirDrop Web</title>
-
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
@@ -12,99 +11,91 @@
       background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
       text-align: center;
-      margin: 0;
-    }
-
-    .container {
-      margin-top: 80px;
     }
 
     .box {
-      background: #1e293b;
+      margin-top: 80px;
       padding: 30px;
+      background: #1e293b;
       border-radius: 15px;
       display: inline-block;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    input {
-      margin-top: 15px;
     }
 
     button {
-      margin-top: 15px;
       padding: 10px 20px;
-      border: none;
       background: #22c55e;
-      color: white;
+      border: none;
       border-radius: 8px;
+      color: white;
       cursor: pointer;
     }
 
-    button:hover {
-      background: #16a34a;
+    progress {
+      width: 100%;
+      margin-top: 10px;
     }
 
     #result a {
       color: #38bdf8;
-    }
-
-    canvas {
-      margin-top: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<div class="container">
-  <div class="box">
-    <h2>📲 AirDrop Web</h2>
+<div class="box">
+  <h2>📲 AirDrop Web</h2>
 
-    <canvas id="qr"></canvas>
+  <canvas id="qr"></canvas>
 
-    <br>
+  <br>
 
-    <input type="file" id="file">
-    <br>
-    <button onclick="upload()">Gửi file</button>
+  <input type="file" id="file"><br><br>
 
-    <p id="result"></p>
-  </div>
+  <button onclick="upload()">Gửi file</button>
+
+  <progress id="progress" value="0" max="100"></progress>
+
+  <p id="status"></p>
+  <p id="result"></p>
 </div>
 
 <script>
 const socket = io();
 
-// nhận link file mới
+// nhận link
 socket.on("file", (link) => {
-
-  // hiển thị link
   document.getElementById("result").innerHTML =
-    `<p>📁 <a href="${link}" target="_blank">${link}</a></p>`;
+    `<a href="${link}" target="_blank">${link}</a>`;
 
-  // tạo QR theo link file
   QRCode.toCanvas(document.getElementById("qr"), link);
 });
 
-// upload file
-async function upload() {
+// upload có progress
+function upload() {
   const file = document.getElementById("file").files[0];
   if (!file) return alert("Chọn file!");
 
+  const xhr = new XMLHttpRequest();
   const formData = new FormData();
   formData.append("file", file);
 
-  document.getElementById("result").innerHTML = "⏳ Đang gửi...";
+  xhr.open("POST", "/upload");
 
-  await fetch("/upload", {
-    method: "POST",
-    body: formData
-  });
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total) * 100;
+      document.getElementById("progress").value = percent;
+      document.getElementById("status").innerText =
+        "Đang upload: " + Math.round(percent) + "%";
+    }
+  };
+
+  xhr.onload = () => {
+    document.getElementById("status").innerText = "✅ Upload xong!";
+  };
+
+  xhr.send(formData);
 }
 </script>
 
