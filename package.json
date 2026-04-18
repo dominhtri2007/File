@@ -1,0 +1,11 @@
+{
+  "name": "steam-account-manager-render",
+  "private": true,
+  "scripts": {
+    "render-build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

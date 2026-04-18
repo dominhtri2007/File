@@ -1,0 +1,6 @@
+.env
+node_modules
+database.sqlite
+firebase-service-account*.json
+serviceAccountKey*.json
+*.log

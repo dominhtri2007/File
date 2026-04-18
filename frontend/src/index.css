@@ -1,0 +1,172 @@
+:root {
+  --steam-bg-dark: #1b2838;
+  --steam-bg-darker: #171a21;
+  --steam-blue: #66c0f4;
+  --steam-blue-dark: #2a475e;
+  --steam-white: #c7d5e0;
+  --steam-green: #a4d007;
+
+  --glass-bg: rgba(42, 71, 94, 0.4);
+  --glass-border: rgba(102, 192, 244, 0.2);
+  --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: radial-gradient(circle at top, var(--steam-bg-dark), var(--steam-bg-darker));
+  color: var(--steam-white);
+  font-family: var(--font-main);
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3 {
+  color: #fff;
+  font-weight: 600;
+}
+
+a {
+  color: var(--steam-blue);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--glass-shadow);
+  padding: 1.5rem;
+}
+
+/* Navigation */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(23, 26, 33, 0.8);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+/* Buttons */
+.btn {
+  background: var(--steam-blue-dark);
+  color: var(--steam-white);
+  border: 1px solid var(--steam-blue);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn:hover {
+  background: var(--steam-blue);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #47bfff, #1a44c2);
+  border: none;
+  color: #fff;
+}
+.btn-primary:hover {
+  background: linear-gradient(90deg, #1a44c2, #47bfff);
+}
+
+.btn-success {
+  background: linear-gradient(90deg, #799905, #a4d007);
+  border: none;
+  color: #fff;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+.input-control {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 0.75rem;
+  border-radius: 4px;
+  outline: none;
+  transition: border 0.2s;
+}
+.input-control:focus {
+  border-color: var(--steam-blue);
+}
+
+/* Grid System */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Alerts / Banners */
+.alert {
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  background: rgba(255, 0, 0, 0.2);
+  border: 1px solid red;
+  color: #ffbaba;
+}
+.alert-success {
+  background: rgba(164, 208, 7, 0.2);
+  border: 1px solid var(--steam-green);
+  color: var(--steam-green);
+}
+
+/* Micro animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

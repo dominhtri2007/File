@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: steam-account-manager
+    runtime: node
+    plan: free
+    buildCommand: npm run render-build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: DB_PROVIDER
+        value: firebase
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_NAME
+        value: Steam Manager
+      - key: EMAIL_CODE_TTL_MINUTES
+        value: 10
+      - key: ALLOW_DEV_EMAIL_CODE
+        value: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false

@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "migrate:firebase": "node migrate_to_firebase.js",
+    "test": "node --check server.js && node --check database.js && node --check firebaseDatabase.js && node --check migrate_to_firebase.js && node --check utils/encrypt.js && node --check utils/email.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.8.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.5",
+    "sqlite3": "^6.0.1"
+  }
+}
